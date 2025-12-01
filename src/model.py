@@ -48,18 +48,25 @@ class ModelCLIP:
 
         return image_feat.squeeze().cpu().numpy()
     
-
+    def encode_text(self, text, model):
+         
+         with torch.no_grad():
+              tokens = tokenizer(text).to(self.device)
+              text_feat = model.encode_text(tokens)
+              text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
+         
+         return  text_feat.squeeze().cpu().numpy()
 
 
 if __name__ == '__main__':
     image_path = 'src/astro.png'
-    
+    text = "A photo of an astronaut riding a horse on mars."
     # Set device
-    print(torch.cuda.is_available())
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # print(f"Using device: {device}")
     
-    clip = ModelCLIP(device='cuda')
+    clip = ModelCLIP(device=device)
     
     try:
         model, preprocess, tokenizer = clip.load_mobileclip_model()
@@ -68,6 +75,9 @@ if __name__ == '__main__':
         if os.path.exists(image_path):
             encoded_image = clip.encode_image(image_path, model, preprocess)
             print(f"Encoded image shape: {encoded_image.shape}")
+        if text:
+            encoded_text = clip.encode_text(text, model)
+            print(f"Encoded text shape: {encoded_text.shape}")
         else:
             print(f"Warning: Image file '{image_path}' not found")
             
