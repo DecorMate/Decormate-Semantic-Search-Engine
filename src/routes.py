@@ -25,6 +25,20 @@ def get_indexer():
             return None
     return indexer
 
+@app.route('/', methods=['GET'])
+def home():
+    """Root endpoint with API information"""
+    return jsonify({
+        'service': 'Semantic Search API',
+        'version': '1.0',
+        'endpoints': {
+            'POST /upload': 'Upload images or text for indexing',
+            'POST /search': 'Search for similar content',
+            'GET /health': 'Detailed health check',
+            'GET /ping': 'Simple connectivity test'
+        }
+    }), 200
+
 @app.route('/upload', methods=['POST'])
 def upload_content():
     """
