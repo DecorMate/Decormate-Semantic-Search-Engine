@@ -9,37 +9,58 @@ load_dotenv()
 
 class SimpleIndexer:
     def __init__(self):
-        """Initialize Pinecone and MobileCLIP model"""
-        try:
-            print("🔄 Initializing Pinecone...")
-            # Check for API key first
-            api_key = os.environ.get('PINECONE_API_KEY')
-            if not api_key:
-                raise ValueError("PINECONE_API_KEY environment variable not set")
-            
-            # Setup Pinecone
-            self.pc = Pinecone(api_key=api_key)
-            self.index = self.pc.Index('decormate')
-            print("✅ Pinecone connected")
-            
-            print("🔄 Loading MobileCLIP model...")
-            # Setup AI model
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            print(f"📱 Using device: {device}")
-            self.clip = ModelCLIP(device=device)
-            self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
-            print("✅ MobileCLIP model loaded")
-            
-        except Exception as e:
-            print(f"❌ Failed to initialize indexer: {e}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-            raise
-        print(f"✅ Ready! Using {device}")
+        """Initialize with minimal setup"""
+        # Setup Pinecone
+        self.pc = Pinecone(api_key=os.environ.get('PINECONE_API_KEY'))
+        self.index = self.pc.Index('decormate')
+        
+        # Setup model (CPU only for memory efficiency)
+        self.clip = ModelCLIP(device='cpu')
+        self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
+        print("✅ Ready!")
+
+    def add_image(self, image_path, description=None, custom_id=None):
+        """Add image to database"""
+        vector = self.clip.encode_image(image_path, self.model, self.preprocess)
+        item_id = custom_id or str(uuid.uuid4())
+        
+        self.index.upsert(vectors=[(item_id, vector.tolist(), {
+            'type': 'image',
+            'description': description or ''
+        })])
+        
+        return item_id
+
+    def add_text(self, text, category=None, custom_id=None):
+        """Add text to database"""
+        vector = self.clip.encode_text(text, self.model, self.tokenizer)
+        item_id = custom_id or str(uuid.uuid4())
+        
+        self.index.upsert(vectors=[(item_id, vector.tolist(), {
+            'type': 'text',
+            'category': category or ''
+        })])
+        
+        return item_id
+
+    def search(self, query, limit=5):
+        """Search for similar content"""
+        # Create query vector
+        if os.path.exists(query):  # File path
+            vector = self.clip.encode_image(query, self.model, self.preprocess)
+        else:  # Text query
+            vector = self.clip.encode_text(query, self.model, self.tokenizer)
+        
+        # Search
+        results = self.index.query(vector=vector.tolist(), top_k=limit, include_metadata=True)
+        return results.matches
 
     def add_image(self, image_path, description=None, custom_id=None):
         """Add an image to the database"""
         try:
+            # Ensure model is loaded
+            self._ensure_model_loaded()
+            
             # Create embedding
             vector = self.clip.encode_image(image_path, self.model, self.preprocess)
             
@@ -68,6 +89,9 @@ class SimpleIndexer:
     def add_text(self, text, category=None, custom_id=None):
         """Add text to the database"""
         try:
+            # Ensure model is loaded
+            self._ensure_model_loaded()
+            
             # Create embedding
             vector = self.clip.encode_text(text, self.model, self.tokenizer)
             
@@ -97,6 +121,9 @@ class SimpleIndexer:
     def search(self, query, limit=5):
         """Search for similar items"""
         try:
+            # Ensure model is loaded
+            self._ensure_model_loaded()
+            
             # Check if query is an image file
             if os.path.exists(query) and query.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
                 # Search with image
@@ -137,6 +164,6 @@ if __name__ == "__main__":
     
     
     # Search with image
-    indexer.search("src/astro2.png")
+    # indexer.search("src/astro2.png")
     
     print("📚 Indexer is ready! Uncomment examples above to start using it.")

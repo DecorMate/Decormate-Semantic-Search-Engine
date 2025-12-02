@@ -1,52 +1,132 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-import traceback
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend access
+CORS(app)
 
-# Global indexer variable
+# Global indexer - simple lazy loading
 indexer = None
-
-def get_indexer():
-    """Lazy initialization of indexer with error handling"""
-    global indexer
-    if indexer is None:
-        try:
-            print("🔄 Attempting to initialize indexer...")
-            
-            # Check environment first
-            if not os.environ.get('PINECONE_API_KEY'):
-                print("❌ PINECONE_API_KEY not found in environment")
-                return None
-                
-            from indexer import SimpleIndexer
-            indexer = SimpleIndexer()
-            print("✅ Indexer initialized successfully")
-        except ImportError as e:
-            print(f"❌ Import error: {e}")
-            return None
-        except Exception as e:
-            print(f"❌ Failed to initialize indexer: {e}")
-            print(f"Traceback: {traceback.format_exc()}")
-            return None
-    return indexer
 
 @app.route('/', methods=['GET'])
 def home():
-    """Root endpoint with API information"""
+    """API information"""
     return jsonify({
         'service': 'Semantic Search API',
-        'version': '1.0',
         'endpoints': {
-            'POST /upload': 'Upload images or text for indexing',
-            'POST /search': 'Search for similar content',
-            'GET /health': 'Detailed health check',
-            'GET /ping': 'Simple connectivity test'
+            'POST /upload': 'Upload content',
+            'POST /search': 'Search content',
+            'GET /ping': 'Health check'
         }
-    }), 200
+    })
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    """Simple health check"""
+    return "OK"
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    """Upload content with optional custom ID"""
+    global indexer
+    
+    try:
+        # Initialize indexer if needed
+        if indexer is None:
+            from indexer import SimpleIndexer
+            indexer = SimpleIndexer()
+        
+        # Handle image upload
+        if 'file' in request.files:
+            file = request.files['file']
+            custom_id = request.form.get('id')
+            description = request.form.get('description', '')
+            
+            if not file.filename:
+                return jsonify({'error': 'No file'}), 400
+            
+            # Save temp file
+            filepath = f"temp/{file.filename}"
+            os.makedirs('temp', exist_ok=True)
+            file.save(filepath)
+            
+            # Add to index
+            item_id = indexer.add_image(filepath, description, custom_id)
+            os.remove(filepath)
+            
+            return jsonify({'id': item_id})
+        
+        # Handle text upload
+        elif request.is_json:
+            data = request.get_json()
+            text = data.get('text')
+            custom_id = data.get('id')
+            category = data.get('category', '')
+            
+            if not text:
+                return jsonify({'error': 'No text'}), 400
+            
+            item_id = indexer.add_text(text, category, custom_id)
+            return jsonify({'id': item_id})
+        
+        else:
+            return jsonify({'error': 'Invalid request'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/search', methods=['POST'])
+def search():
+    """Search for similar content"""
+    global indexer
+    
+    try:
+        # Initialize indexer if needed
+        if indexer is None:
+            from indexer import SimpleIndexer
+            indexer = SimpleIndexer()
+        
+        # Handle image search
+        if 'file' in request.files:
+            file = request.files['file']
+            limit = int(request.form.get('limit', 5))
+            
+            if not file.filename:
+                return jsonify({'error': 'No file'}), 400
+            
+            # Save temp file
+            filepath = f"temp/search_{file.filename}"
+            os.makedirs('temp', exist_ok=True)
+            file.save(filepath)
+            
+            # Search
+            results = indexer.search(filepath, limit)
+            os.remove(filepath)
+            
+            return jsonify({'ids': [r.id for r in results]})
+        
+        # Handle text search
+        elif request.is_json:
+            data = request.get_json()
+            query = data.get('query')
+            limit = data.get('limit', 5)
+            
+            if not query:
+                return jsonify({'error': 'No query'}), 400
+            
+            results = indexer.search(query, limit)
+            return jsonify({'ids': [r.id for r in results]})
+        
+        else:
+            return jsonify({'error': 'Invalid request'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 
 @app.route('/status', methods=['GET'])
 def status():
@@ -75,6 +155,19 @@ def status():
         status_info['indexer_module'] = {'importable': False, 'error': str(e)}
     
     return jsonify(status_info), 200
+
+@app.route('/cleanup', methods=['POST'])
+def cleanup_memory():
+    """Free model memory - useful for memory-constrained environments"""
+    try:
+        global indexer
+        if indexer is not None and hasattr(indexer, '_cleanup_model'):
+            indexer._cleanup_model()
+            return jsonify({'message': 'Model memory freed successfully'}), 200
+        else:
+            return jsonify({'message': 'No model to cleanup'}), 200
+    except Exception as e:
+        return jsonify({'error': f'Cleanup failed: {str(e)}'}), 500
 
 @app.route('/upload', methods=['POST'])
 def upload_content():
