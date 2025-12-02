@@ -16,11 +16,13 @@ COPY requirements.txt .
     RUN pip install --no-cache-dir torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cpu
     
     # Install remaining dependencies
-    RUN pip install --no-cache-dir -r requirements.txt# Copy source code
-COPY src/ ./src/
-
-# Clone MobileCLIP repository
-RUN git clone https://github.com/apple/ml-mobileclip.git
+    RUN pip install --no-cache-dir -r requirements.txt
+    
+    # Copy source code
+    COPY src/ ./src/
+    
+    # Clone MobileCLIP repository
+    RUN git clone https://github.com/apple/ml-mobileclip.git
 
 # Create directories
 RUN mkdir -p models temp
