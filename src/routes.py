@@ -127,8 +127,4 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    print("🚀 Semantic Search API")
-    print("   POST /upload - Upload content (with optional 'id')")
-    print("   POST /search - Search and get IDs only")
-    print("   GET  /health - Health check")
     app.run(host='0.0.0.0', port=5000, debug=True)
