@@ -178,8 +178,8 @@ def health_check():
 
 @app.route('/ping', methods=['GET'])
 def ping():
-    """Simple ping endpoint for basic connectivity test"""
-    return jsonify({'message': 'pong', 'status': 'ok'}), 200
+    """Ultra-simple ping endpoint - no dependencies"""
+    return "OK", 200
 
 # Error handlers
 @app.errorhandler(404)
@@ -196,23 +196,6 @@ def internal_error(error):
 
 if __name__ == '__main__':
     print("🚀 Starting Semantic Search API...")
-    print(f"📍 Working directory: {os.getcwd()}")
-    print(f"🐍 Python path: {os.environ.get('PYTHONPATH', 'Not set')}")
-    print(f"🔑 Pinecone key set: {bool(os.environ.get('PINECONE_API_KEY'))}")
-    
-    try:
-        import torch
-        print(f"🔥 PyTorch available: {torch.__version__}")
-        print(f"📱 Device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
-    except Exception as e:
-        print(f"❌ PyTorch issue: {e}")
-    
-    try:
-        # Test basic import without initializing
-        from indexer import SimpleIndexer
-        print("✅ SimpleIndexer can be imported")
-    except Exception as e:
-        print(f"❌ SimpleIndexer import failed: {e}")
-    
-    print("🌐 Starting Flask server...")
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🔌 Starting on port: {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
