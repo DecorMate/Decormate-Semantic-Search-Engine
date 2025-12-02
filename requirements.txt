@@ -1,14 +1,13 @@
-torch>=2.0.0
-torchvision>=0.15.0
-torchaudio>=2.0.0
-open-clip-torch>=2.20.0
-clip-benchmark>=1.4.0
-datasets>=2.21.0
-timm>=0.9.5
-pinecone>=5.0.0
-flask>=2.3.0
-flask-cors>=4.0.0
-python-dotenv>=1.0.0
-pillow>=10.0.0
-huggingface-hub>=0.20.0
-numpy>=1.24.0
+# Minimal dependencies to reduce image size
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu  
+torchaudio==2.1.0+cpu
+open-clip-torch==2.20.0
+timm==0.9.5
+pinecone==5.0.1
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+pillow==10.0.1
+huggingface-hub==0.20.0
+numpy==1.24.4
