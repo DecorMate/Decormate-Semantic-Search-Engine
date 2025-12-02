@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "bash setup.sh"
 
 [build.nixpacksConfig]
 aptPkgs = ["wget", "curl", "git-lfs"]
@@ -9,11 +10,6 @@ PYTHONPATH = "/app/src:/app/ml-mobileclip"
 PORT = "5000"
 MODEL_PATH = "/app/models/mobileclip_s1.pt"
 
-# Build commands
-[build]
-buildCommand = "bash setup.sh"
-
-# Deployment
 [deploy]
 startCommand = "cd src && python routes.py"
 healthcheckPath = "/health"
