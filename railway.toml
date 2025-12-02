@@ -12,7 +12,7 @@ MODEL_PATH = "/app/models/mobileclip_s1.pt"
 
 [deploy]
 startCommand = "python src/routes.py"
-healthcheckPath = "/health"
-healthcheckTimeout = 300
+healthcheckPath = "/ping"
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

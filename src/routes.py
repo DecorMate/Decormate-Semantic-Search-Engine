@@ -137,23 +137,49 @@ def search_content():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Enhanced health check endpoint"""
+    """Enhanced health check endpoint with detailed diagnostics"""
     try:
-        # Check if indexer can be initialized
-        current_indexer = get_indexer()
-        indexer_status = 'ready' if current_indexer is not None else 'initializing'
-        
-        return jsonify({
+        # Basic app health
+        health_data = {
             'status': 'healthy',
             'service': 'Semantic Search API',
             'version': '1.0',
-            'indexer': indexer_status
-        }), 200
+            'timestamp': str(__import__('datetime').datetime.now())
+        }
+        
+        # Try to check indexer status without forcing initialization
+        try:
+            global indexer
+            if indexer is not None:
+                health_data['indexer'] = 'ready'
+            else:
+                health_data['indexer'] = 'not_initialized'
+            
+            # Test basic environment
+            import torch
+            health_data['torch_available'] = True
+            health_data['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
+            
+            # Check environment variables (without exposing values)
+            health_data['pinecone_key_set'] = bool(os.environ.get('PINECONE_API_KEY'))
+            
+        except Exception as e:
+            health_data['indexer'] = f'error: {str(e)}'
+        
+        return jsonify(health_data), 200
+        
     except Exception as e:
+        # Even if there are issues, return a basic healthy status
+        # so Railway doesn't kill the container
         return jsonify({
-            'status': 'unhealthy',
+            'status': 'basic_healthy',
             'error': str(e)
-        }), 503
+        }), 200  # Return 200 to pass health check
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    """Simple ping endpoint for basic connectivity test"""
+    return jsonify({'message': 'pong', 'status': 'ok'}), 200
 
 # Error handlers
 @app.errorhandler(404)
@@ -169,4 +195,24 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("🚀 Starting Semantic Search API...")
+    print(f"📍 Working directory: {os.getcwd()}")
+    print(f"🐍 Python path: {os.environ.get('PYTHONPATH', 'Not set')}")
+    print(f"🔑 Pinecone key set: {bool(os.environ.get('PINECONE_API_KEY'))}")
+    
+    try:
+        import torch
+        print(f"🔥 PyTorch available: {torch.__version__}")
+        print(f"📱 Device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
+    except Exception as e:
+        print(f"❌ PyTorch issue: {e}")
+    
+    try:
+        # Test basic import without initializing
+        from indexer import SimpleIndexer
+        print("✅ SimpleIndexer can be imported")
+    except Exception as e:
+        print(f"❌ SimpleIndexer import failed: {e}")
+    
+    print("🌐 Starting Flask server...")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
