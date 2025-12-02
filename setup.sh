@@ -22,6 +22,12 @@ pip install --no-cache-dir \
     huggingface-hub==0.20.0 \
     numpy==1.24.4
 
+# Clone MobileCLIP if not present
+if [ ! -d "ml-mobileclip" ]; then
+    echo "📥 Cloning MobileCLIP repository..."
+    git clone https://github.com/apple/ml-mobileclip.git
+fi
+
 # Create minimal directories
 echo "📁 Creating directories..."
 mkdir -p models temp
