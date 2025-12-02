@@ -19,16 +19,9 @@ def delete_exiting_index(index_name):
     else : 
         print(f'[info] {index_name} not in the list')
 
-MODEL_NAME = 'BAAI/EVA02-CLIP-B-16'
 
-model = AutoModel.from_pretrained(MODEL_NAME, cache_dir='./').to(device)
 
-processor = AutoProcessor.from_pretrained(MODEL_NAME, cache_dir='./')
-
-# dimensions 
-EMBED_dim = model.visual_projection.out_features
-
-def create_new_index(index_name, dim = EMBED_dim, metrice="dotproduct"):
+def create_new_index(index_name, dim = 512, metrice="dotproduct"):
     if index_name  not in [index.name for index in pc.list_indexes()]:
         # create index 
         pc.create_index(
@@ -44,6 +37,6 @@ def create_new_index(index_name, dim = EMBED_dim, metrice="dotproduct"):
         print(f'[info] {index_name}  the index already exist')
 
 if __name__ == "__main__":
-    index_name = 'Decormate'
+    index_name = 'decormate'  # Pinecone requires lowercase names
     create_new_index(index_name)
 

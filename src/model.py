@@ -78,6 +78,7 @@ if __name__ == '__main__':
         if text:
             encoded_text = clip.encode_text(text, model)
             print(f"Encoded text shape: {encoded_text.shape}")
+            print(encoded_text)
         else:
             print(f"Warning: Image file '{image_path}' not found")
             
