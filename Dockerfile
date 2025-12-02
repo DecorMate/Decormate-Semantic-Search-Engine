@@ -27,10 +27,9 @@ COPY requirements.txt .
 # Create directories
 RUN mkdir -p models temp
 
-# Download model during build
-RUN python -c "from huggingface_hub import hf_hub_download; hf_hub_download(repo_id='pcuenq/MobileCLIP-S1', filename='mobileclip_s1.pt', local_dir='models', local_dir_use_symlinks=False)"
-
-# Set environment variables
+    # Copy download script and run it
+    COPY download_model.py .
+    RUN python download_model.py# Set environment variables
 ENV PYTHONPATH="/app/src:/app/ml-mobileclip"
 ENV MODEL_PATH="/app/models/mobileclip_s1.pt"
 ENV PORT=5000
