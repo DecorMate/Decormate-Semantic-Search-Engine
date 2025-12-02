@@ -1,7 +1,7 @@
 # Minimal dependencies to reduce image size
-torch==2.1.0+cpu
-torchvision==0.16.0+cpu  
-torchaudio==2.1.0+cpu
+torch==2.1.0
+torchvision==0.16.0
+torchaudio==2.1.0
 open-clip-torch==2.20.0
 timm==0.9.5
 pinecone==5.0.1
