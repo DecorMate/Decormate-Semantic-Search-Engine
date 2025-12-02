@@ -15,13 +15,22 @@ def get_indexer():
     global indexer
     if indexer is None:
         try:
+            print("🔄 Attempting to initialize indexer...")
+            
+            # Check environment first
+            if not os.environ.get('PINECONE_API_KEY'):
+                print("❌ PINECONE_API_KEY not found in environment")
+                return None
+                
             from indexer import SimpleIndexer
             indexer = SimpleIndexer()
             print("✅ Indexer initialized successfully")
+        except ImportError as e:
+            print(f"❌ Import error: {e}")
+            return None
         except Exception as e:
             print(f"❌ Failed to initialize indexer: {e}")
             print(f"Traceback: {traceback.format_exc()}")
-            # Return None to indicate failure
             return None
     return indexer
 
@@ -38,6 +47,34 @@ def home():
             'GET /ping': 'Simple connectivity test'
         }
     }), 200
+
+@app.route('/status', methods=['GET'])
+def status():
+    """Detailed status without initializing indexer"""
+    status_info = {
+        'app': 'running',
+        'routes': 'available',
+        'environment': {
+            'pinecone_key_set': bool(os.environ.get('PINECONE_API_KEY')),
+            'python_path': os.environ.get('PYTHONPATH', 'not_set'),
+            'working_dir': os.getcwd()
+        }
+    }
+    
+    # Test imports without initializing
+    try:
+        import torch
+        status_info['torch'] = {'available': True, 'version': torch.__version__}
+    except Exception as e:
+        status_info['torch'] = {'available': False, 'error': str(e)}
+    
+    try:
+        from indexer import SimpleIndexer
+        status_info['indexer_module'] = {'importable': True}
+    except Exception as e:
+        status_info['indexer_module'] = {'importable': False, 'error': str(e)}
+    
+    return jsonify(status_info), 200
 
 @app.route('/upload', methods=['POST'])
 def upload_content():
