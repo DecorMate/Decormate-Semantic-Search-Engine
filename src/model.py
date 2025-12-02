@@ -10,9 +10,30 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ModelCLIP:
-    def __init__(self, model_name= 'mobileclip_s1', checkpoint=os.environ.get('CHECKPOINT'), device= 'cpu'):
+    def __init__(self, model_name='mobileclip_s1', checkpoint=None, device='cpu'):
         self.model_name = model_name
-        self.checkpoint = checkpoint
+        
+        # Try multiple possible model paths for Railway deployment
+        if checkpoint:
+            self.checkpoint = checkpoint
+        else:
+            possible_paths = [
+                os.environ.get('MODEL_PATH'),  # Railway environment variable
+                '/app/models/mobileclip_s1.pt',  # Railway path
+                os.path.join(os.getcwd(), 'models', 'mobileclip_s1.pt'),  # Local models folder
+                os.environ.get('CHECKPOINT'),  # Legacy environment variable
+            ]
+            
+            self.checkpoint = None
+            for path in possible_paths:
+                if path and os.path.exists(path):
+                    self.checkpoint = path
+                    print(f"✅ Using model from: {path}")
+                    break
+            
+            if not self.checkpoint:
+                print("⚠️ No model checkpoint found, will use model without pretrained weights")
+        
         self.device = device
 
     def load_mobileclip_model(self):
@@ -48,7 +69,7 @@ class ModelCLIP:
 
         return image_feat.squeeze().cpu().numpy()
     
-    def encode_text(self, text, model):
+    def encode_text(self, text, model, tokenizer):
          
          with torch.no_grad():
               tokens = tokenizer(text).to(self.device)
@@ -58,30 +79,30 @@ class ModelCLIP:
          return  text_feat.squeeze().cpu().numpy()
 
 
-if __name__ == '__main__':
-    image_path = 'src/astro.png'
-    text = "A photo of an astronaut riding a horse on mars."
-    # Set device
+# if __name__ == '__main__':
+#     image_path = 'src/astro.png'
+#     text = "A photo of an astronaut riding a horse on mars."
+#     # Set device
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # print(f"Using device: {device}")
+#     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#     # print(f"Using device: {device}")
     
-    clip = ModelCLIP(device=device)
+#     clip = ModelCLIP(device=device)
     
-    try:
-        model, preprocess, tokenizer = clip.load_mobileclip_model()
-        print("Model loaded successfully!")
+#     try:
+#         model, preprocess, tokenizer = clip.load_mobileclip_model()
+#         print("Model loaded successfully!")
         
-        if os.path.exists(image_path):
-            encoded_image = clip.encode_image(image_path, model, preprocess)
-            print(f"Encoded image shape: {encoded_image.shape}")
-        if text:
-            encoded_text = clip.encode_text(text, model)
-            print(f"Encoded text shape: {encoded_text.shape}")
-            print(encoded_text)
-        else:
-            print(f"Warning: Image file '{image_path}' not found")
+#         if os.path.exists(image_path):
+#             encoded_image = clip.encode_image(image_path, model, preprocess)
+#             print(f"Encoded image shape: {encoded_image.shape}")
+#         if text:
+#             encoded_text = clip.encode_text(text, model)
+#             print(f"Encoded text shape: {encoded_text.shape}")
+#             print(encoded_text)
+#         else:
+#             print(f"Warning: Image file '{image_path}' not found")
             
-    except Exception as e:
-        print(f"Error: {e}")
-        print("Make sure you have installed the required packages and downloaded the model weights")
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         print("Make sure you have installed the required packages and downloaded the model weights")
