@@ -10,14 +10,31 @@ load_dotenv()
 class SimpleIndexer:
     def __init__(self):
         """Initialize Pinecone and MobileCLIP model"""
-        # Setup Pinecone
-        self.pc = Pinecone(api_key=os.environ.get('PINECONE_API_KEY'))
-        self.index = self.pc.Index('decormate')
-        
-        # Setup AI model
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.clip = ModelCLIP(device=device)
-        self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
+        try:
+            print("🔄 Initializing Pinecone...")
+            # Check for API key first
+            api_key = os.environ.get('PINECONE_API_KEY')
+            if not api_key:
+                raise ValueError("PINECONE_API_KEY environment variable not set")
+            
+            # Setup Pinecone
+            self.pc = Pinecone(api_key=api_key)
+            self.index = self.pc.Index('decormate')
+            print("✅ Pinecone connected")
+            
+            print("🔄 Loading MobileCLIP model...")
+            # Setup AI model
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            print(f"📱 Using device: {device}")
+            self.clip = ModelCLIP(device=device)
+            self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
+            print("✅ MobileCLIP model loaded")
+            
+        except Exception as e:
+            print(f"❌ Failed to initialize indexer: {e}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            raise
         print(f"✅ Ready! Using {device}")
 
     def add_image(self, image_path, description=None, custom_id=None):
