@@ -6,3 +6,10 @@
 ml-mobileclip/
 
 *.png
+
+images/*.jpg
+images/*.jpeg
+
+
+*jpg
+*jpeg

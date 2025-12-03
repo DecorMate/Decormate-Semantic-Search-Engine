@@ -58,9 +58,6 @@ class SimpleIndexer:
     def add_image(self, image_path, description=None, custom_id=None):
         """Add an image to the database"""
         try:
-            # Ensure model is loaded
-            self._ensure_model_loaded()
-            
             # Create embedding
             vector = self.clip.encode_image(image_path, self.model, self.preprocess)
             
@@ -89,9 +86,6 @@ class SimpleIndexer:
     def add_text(self, text, category=None, custom_id=None):
         """Add text to the database"""
         try:
-            # Ensure model is loaded
-            self._ensure_model_loaded()
-            
             # Create embedding
             vector = self.clip.encode_text(text, self.model, self.tokenizer)
             
@@ -121,9 +115,6 @@ class SimpleIndexer:
     def search(self, query, limit=5):
         """Search for similar items"""
         try:
-            # Ensure model is loaded
-            self._ensure_model_loaded()
-            
             # Check if query is an image file
             if os.path.exists(query) and query.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
                 # Search with image
@@ -162,7 +153,11 @@ if __name__ == "__main__":
     # Create indexer
     indexer = SimpleIndexer()
     
-    
+    # image = 'src/images/furniture_1d37592b-0902-461e-b45d-daeb82e38d3e.jpg'
+    image = 'src\images\furniture_5ec90457-1501-435b-b80f-fe9b4a1a9eae.jpg'
+
+    # indexer.add_image(image)
+    indexer.search(image)
     # Search with image
     # indexer.search("src/astro2.png")
     
