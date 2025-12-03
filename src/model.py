@@ -37,30 +37,50 @@ class ModelCLIP:
         self.device = device
 
     def load_mobileclip_model(self):
-            """
-            Load MobileCLIP model and preprocessing transforms
-            Optimized for low memory environments like Railway
-            """
-            # Force CPU and low memory mode
-            import torch
-            torch.set_num_threads(1)  # Reduce CPU threads
-            
-            model, _, preprocess = create_model_and_transforms(
-                model_name=self.model_name,
-                pretrained= self.checkpoint, 
-                device= 'cpu'  # Force CPU to avoid GPU memory issues
-            )
-            
-            # Set to eval mode and optimize for inference
-            model.eval()
-            
-            # Enable memory optimization
-            for param in model.parameters():
-                param.requires_grad = False
-            
-            tokenizer = get_tokenizer(self.model_name)
-            
-            return model, preprocess, tokenizer
+        """
+        Load MobileCLIP model with EXTREME memory optimization for Railway
+        """
+        # Force minimal memory usage
+        import torch
+        import gc
+        
+        # Set ultra-low memory settings
+        torch.set_num_threads(1)
+        torch.backends.cudnn.enabled = False
+        torch.backends.mkl.enabled = False
+        
+        # Force garbage collection before loading
+        gc.collect()
+        
+        print("🔄 Loading model with minimal memory...")
+        
+        model, _, preprocess = create_model_and_transforms(
+            model_name=self.model_name,
+            pretrained= self.checkpoint, 
+            device= 'cpu'  # Force CPU
+        )
+        
+        # Aggressive memory optimization
+        model.eval()
+        
+        # Disable gradients completely
+        for param in model.parameters():
+            param.requires_grad = False
+        
+        # Force model to half precision to save memory (if supported)
+        try:
+            model = model.half()
+            print("✅ Using half precision to save memory")
+        except:
+            print("⚠️ Half precision not supported, using full precision")
+        
+        tokenizer = get_tokenizer(self.model_name)
+        
+        # Force cleanup
+        gc.collect()
+        
+        print("✅ Model loaded with minimal memory footprint")
+        return model, preprocess, tokenizer
 
     def encode_image(self,image_path, model ,preprocess):
         image = Image.open(image_path).convert('RGB')

@@ -1,11 +1,22 @@
 import os
 import uuid
 import torch
+import gc
+import psutil
 from dotenv import load_dotenv
 from pinecone import Pinecone
 from model import ModelCLIP
 
 load_dotenv()
+
+def get_memory_usage():
+    """Get current memory usage"""
+    try:
+        process = psutil.Process(os.getpid())
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        return f"{memory_mb:.1f}MB"
+    except:
+        return "Unknown"
 
 class SimpleIndexer:
     def __init__(self):
@@ -19,15 +30,24 @@ class SimpleIndexer:
         self.model = None
         self.preprocess = None
         self.tokenizer = None
-        print("✅ Pinecone ready - Model will load on first use")
+        print(f"✅ Pinecone ready - Model will load on first use (Memory: {get_memory_usage()})")
 
     def _get_model(self):
-        """Load model only when needed"""
+        """Load model only when needed with memory optimization"""
         if self.model is None:
-            print("🔄 Loading model...")
+            print(f"🔄 Loading model... (Memory: {get_memory_usage()})")
+            
+            # Force garbage collection before loading
+            import gc
+            gc.collect()
+            
             self.clip = ModelCLIP(device='cpu')
             self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
-            print("✅ Model loaded")
+            
+            # Force another cleanup after loading
+            gc.collect()
+            
+            print(f"✅ Model loaded (Memory: {get_memory_usage()})")
         return self.model, self.preprocess, self.tokenizer
 
     def add_image(self, image_path, description=None, custom_id=None):
