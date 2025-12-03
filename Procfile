@@ -1,1 +1,0 @@
-web: cd src && python routes.py
