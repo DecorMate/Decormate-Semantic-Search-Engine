@@ -29,7 +29,9 @@ RUN mkdir -p models temp
 
     # Copy download script and run it
     COPY download_model.py .
-    RUN python download_model.py# Set environment variables
+    RUN python download_model.py
+
+# Set environment variables
 ENV PYTHONPATH="/app/src:/app/ml-mobileclip"
 ENV MODEL_PATH="/app/models/mobileclip_s1.pt"
 ENV PORT=5000
