@@ -1,99 +1,85 @@
 #!/bin/bash
-echo "🚀 Setting up Semantic Search Engine (Ultra Memory Optimized)..."
+echo "🚀 EMERGENCY Memory Setup (Railway 512MB limit)..."
 
-# Set memory limits
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
+# Set extremely restrictive memory limits
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:8
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
+export NUMEXPR_MAX_THREADS=1
 
-# Upgrade pip with minimal memory
-echo "📦 Upgrading pip..."
-pip install --no-cache-dir --upgrade pip
+# Function to monitor memory
+check_memory() {
+    echo "💾 Memory: $(free -m | awk 'NR==2{printf "%.1fMB used of %.1fMB (%.1f%%)", $3,$2,$3*100/$2 }')"
+}
+
+check_memory
+
+# Upgrade pip minimal
+echo "📦 Upgrading pip (minimal)..."
+pip install --no-cache-dir --upgrade pip --quiet
 pip cache purge
+check_memory
 
-# Install PyTorch CPU with minimal memory footprint
-echo "🔥 Installing PyTorch (CPU only, minimal)..."
-pip install --no-cache-dir --no-deps torch==2.1.0+cpu --index-url https://download.pytorch.org/whl/cpu
+# Install only CORE dependencies first
+echo "🔥 Installing PyTorch CPU (ultra minimal)..."
+pip install --no-cache-dir --quiet torch==2.1.0+cpu --index-url https://download.pytorch.org/whl/cpu
 pip cache purge
 rm -rf /tmp/* 2>/dev/null || true
+check_memory
 
-echo "🔥 Installing torchvision..."
-pip install --no-cache-dir --no-deps torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu
+echo "Installing numpy (minimal)..."
+pip install --no-cache-dir --quiet numpy==1.24.4
 pip cache purge
-rm -rf /tmp/* 2>/dev/null || true
-
-# Install dependencies one by one with cleanup
-echo "📚 Installing dependencies (one by one)..."
-
-echo "Installing numpy..."
-pip install --no-cache-dir numpy==1.24.4
-pip cache purge
+check_memory
 
 echo "Installing pillow..."
-pip install --no-cache-dir pillow==10.0.1
+pip install --no-cache-dir --quiet pillow==10.0.1
 pip cache purge
+check_memory
 
 echo "Installing flask..."
-pip install --no-cache-dir flask==3.0.0
+pip install --no-cache-dir --quiet flask==3.0.0
 pip cache purge
+check_memory
 
 echo "Installing flask-cors..."
-pip install --no-cache-dir flask-cors==4.0.0
+pip install --no-cache-dir --quiet flask-cors==4.0.0
 pip cache purge
+check_memory
 
 echo "Installing python-dotenv..."
-pip install --no-cache-dir python-dotenv==1.0.0
+pip install --no-cache-dir --quiet python-dotenv==1.0.0
 pip cache purge
+check_memory
 
 echo "Installing pinecone..."
-pip install --no-cache-dir pinecone==5.0.1
+pip install --no-cache-dir --quiet pinecone==5.0.1
 pip cache purge
+check_memory
 
 echo "Installing huggingface-hub..."
-pip install --no-cache-dir huggingface-hub==0.20.0
+pip install --no-cache-dir --quiet huggingface-hub==0.20.0
 pip cache purge
+check_memory
 
-echo "Installing psutil (memory monitoring)..."
-pip install --no-cache-dir psutil==5.9.5
-pip cache purge
+# Skip timm and open-clip for now - we'll use a minimal CLIP implementation
+echo "⚠️ Skipping heavy packages (timm, open-clip) to save memory"
 
-# Install timm without dependencies to avoid conflicts
-echo "Installing timm (minimal)..."
-pip install --no-cache-dir --no-deps timm==0.9.5
-pip cache purge
+# Clone MobileCLIP with minimal history
+echo "📥 Cloning MobileCLIP (minimal)..."
+git clone --depth 1 --single-branch https://github.com/apple/ml-mobileclip.git
+rm -rf ml-mobileclip/.git  # Remove git history to save space
+check_memory
 
-# Install open-clip last (biggest package)
-echo "Installing open-clip-torch (minimal)..."
-pip install --no-cache-dir --no-deps open-clip-torch==2.20.0
-pip cache purge
-
-# Aggressive cleanup
-echo "🧹 Aggressive memory cleanup..."
-pip cache purge
-rm -rf ~/.cache/pip 2>/dev/null || true
-rm -rf /tmp/* 2>/dev/null || true
-rm -rf /var/tmp/* 2>/dev/null || true
-
-# Clone MobileCLIP if not present (lightweight)
-if [ ! -d "ml-mobileclip" ]; then
-    echo "📥 Cloning MobileCLIP repository..."
-    git clone --depth 1 https://github.com/apple/ml-mobileclip.git
-fi
-
-# Create minimal directories
-echo "📁 Creating directories..."
+# Create directories
 mkdir -p models temp
 
-# Use download_model.py with retry logic instead of inline Python
-echo "🤖 Downloading MobileCLIP model..."
-if [ -f "download_model.py" ]; then
-    python3 download_model.py
-else
-    # Fallback inline download with minimal memory
-    python3 -c "
+# Download model file directly without heavy dependencies
+echo "🤖 Downloading model file only..."
+python3 -c "
 import os, gc
 from huggingface_hub import hf_hub_download
-print('Downloading mobileclip_s1.pt...')
+print('Downloading model...')
 try:
     hf_hub_download(
         repo_id='pcuenq/MobileCLIP-S1',
@@ -102,28 +88,29 @@ try:
         local_dir_use_symlinks=False
     )
     print('✅ Model downloaded!')
-    gc.collect()  # Force garbage collection
+    gc.collect()
 except Exception as e:
     print(f'❌ Download failed: {e}')
     exit(1)
 "
-fi
 
-# Final aggressive cleanup
-echo "🧹 Final cleanup..."
+# Ultra-aggressive cleanup
+echo "🧹 Ultra cleanup..."
 pip cache purge
 rm -rf ~/.cache 2>/dev/null || true
 rm -rf /tmp/* 2>/dev/null || true
 rm -rf /var/tmp/* 2>/dev/null || true
+rm -rf /root/.cache 2>/dev/null || true
 
-# Verify model exists
+check_memory
+
+# Verify model
 if [ -f "models/mobileclip_s1.pt" ]; then
-    echo "✅ Setup completed! Model size:"
+    echo "✅ Emergency setup complete!"
     ls -lh models/mobileclip_s1.pt
 else
-    echo "❌ Model file not found!"
+    echo "❌ Model not found!"
     exit 1
 fi
 
-echo "🎉 Ultra-optimized setup completed!"
-echo "💾 Memory usage minimized for Railway deployment"
+echo "🚨 Emergency memory-optimized setup done!"

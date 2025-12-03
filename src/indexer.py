@@ -2,19 +2,35 @@ import os
 import uuid
 import torch
 import gc
-import psutil
 from dotenv import load_dotenv
 from pinecone import Pinecone
-from model import ModelCLIP
+
+# Try to import the full model first, fallback to minimal
+try:
+    from model import ModelCLIP
+    print("✅ Using full ModelCLIP implementation")
+    USE_MINIMAL = False
+except ImportError as e:
+    print(f"⚠️ Full model import failed: {e}")
+    try:
+        from model_minimal import ModelCLIP
+        print("🚨 Using MINIMAL ModelCLIP for emergency deployment")
+        USE_MINIMAL = True
+    except ImportError:
+        print("❌ No model implementation available!")
+        raise
 
 load_dotenv()
 
 def get_memory_usage():
     """Get current memory usage"""
     try:
+        import psutil
         process = psutil.Process(os.getpid())
         memory_mb = process.memory_info().rss / 1024 / 1024
         return f"{memory_mb:.1f}MB"
+    except ImportError:
+        return "Unknown (psutil not available)"
     except:
         return "Unknown"
 

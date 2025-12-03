@@ -42,5 +42,5 @@ RUN pip cache purge && rm -rf ~/.cache && rm -rf /tmp/*
 # Expose port
 EXPOSE 5000
 
-# Start command
-CMD ["python", "src/routes.py"]
+# Start command - use emergency server for reliability
+CMD ["python", "emergency_server.py"]
