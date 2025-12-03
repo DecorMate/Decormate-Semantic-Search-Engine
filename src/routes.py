@@ -110,8 +110,15 @@ def search():
             
             try:
                 # Search
+                print(f"Calling indexer.search with file: {filepath}, limit: {limit}")
                 results = indexer.search(filepath, limit)
-                return jsonify({'ids': [r.id for r in results]})
+                print(f"Search returned {len(results)} results")
+                
+                # Extract IDs with debugging
+                result_ids = [r.id for r in results]
+                print(f"Result IDs: {result_ids}")
+                
+                return jsonify({'ids': result_ids})
             finally:
                 # Always cleanup temp file
                 if os.path.exists(filepath):
@@ -126,8 +133,15 @@ def search():
             if not query:
                 return jsonify({'error': 'No query provided'}), 400
             
+            print(f"Calling indexer.search with query: {query}, limit: {limit}")
             results = indexer.search(query, limit)
-            return jsonify({'ids': [r.id for r in results]})
+            print(f"Search returned {len(results)} results")
+            
+            # Extract IDs with debugging
+            result_ids = [r.id for r in results]
+            print(f"Result IDs: {result_ids}")
+            
+            return jsonify({'ids': result_ids})
         
         else:
             return jsonify({
