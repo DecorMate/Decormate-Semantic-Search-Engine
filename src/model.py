@@ -39,21 +39,24 @@ class ModelCLIP:
     def load_mobileclip_model(self):
             """
             Load MobileCLIP model and preprocessing transforms
-            
-            Args:
-                model_name: mobileclip_s1
-                device: Device to load model on ('cpu' or 'cuda')
-            
-            Returns:
-                model: The MobileCLIP model
-                preprocess: Image preprocessing transforms
-                tokenizer: Text tokenizer
+            Optimized for low memory environments like Railway
             """
+            # Force CPU and low memory mode
+            import torch
+            torch.set_num_threads(1)  # Reduce CPU threads
+            
             model, _, preprocess = create_model_and_transforms(
                 model_name=self.model_name,
                 pretrained= self.checkpoint, 
-                device= self.device
+                device= 'cpu'  # Force CPU to avoid GPU memory issues
             )
+            
+            # Set to eval mode and optimize for inference
+            model.eval()
+            
+            # Enable memory optimization
+            for param in model.parameters():
+                param.requires_grad = False
             
             tokenizer = get_tokenizer(self.model_name)
             

@@ -9,19 +9,31 @@ load_dotenv()
 
 class SimpleIndexer:
     def __init__(self):
-        """Initialize with minimal setup"""
+        """Initialize Pinecone only - defer model loading to save memory"""
         # Setup Pinecone
         self.pc = Pinecone(api_key=os.environ.get('PINECONE_API_KEY'))
         self.index = self.pc.Index('decormate')
         
-        # Setup model (CPU only for memory efficiency)
-        self.clip = ModelCLIP(device='cpu')
-        self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
-        print("✅ Ready!")
+        # Model components - load on demand
+        self.clip = None
+        self.model = None
+        self.preprocess = None
+        self.tokenizer = None
+        print("✅ Pinecone ready - Model will load on first use")
+
+    def _get_model(self):
+        """Load model only when needed"""
+        if self.model is None:
+            print("🔄 Loading model...")
+            self.clip = ModelCLIP(device='cpu')
+            self.model, self.preprocess, self.tokenizer = self.clip.load_mobileclip_model()
+            print("✅ Model loaded")
+        return self.model, self.preprocess, self.tokenizer
 
     def add_image(self, image_path, description=None, custom_id=None):
         """Add image to database"""
-        vector = self.clip.encode_image(image_path, self.model, self.preprocess)
+        model, preprocess, _ = self._get_model()
+        vector = self.clip.encode_image(image_path, model, preprocess)
         item_id = custom_id or str(uuid.uuid4())
         
         self.index.upsert(vectors=[(item_id, vector.tolist(), {
@@ -33,7 +45,8 @@ class SimpleIndexer:
 
     def add_text(self, text, category=None, custom_id=None):
         """Add text to database"""
-        vector = self.clip.encode_text(text, self.model, self.tokenizer)
+        model, _, tokenizer = self._get_model()
+        vector = self.clip.encode_text(text, model, tokenizer)
         item_id = custom_id or str(uuid.uuid4())
         
         self.index.upsert(vectors=[(item_id, vector.tolist(), {
@@ -45,11 +58,13 @@ class SimpleIndexer:
 
     def search(self, query, limit=5):
         """Search for similar content"""
+        model, preprocess, tokenizer = self._get_model()
+        
         # Create query vector
         if os.path.exists(query):  # File path
-            vector = self.clip.encode_image(query, self.model, self.preprocess)
+            vector = self.clip.encode_image(query, model, preprocess)
         else:  # Text query
-            vector = self.clip.encode_text(query, self.model, self.tokenizer)
+            vector = self.clip.encode_text(query, model, tokenizer)
         
         # Search
         results = self.index.query(vector=vector.tolist(), top_k=limit, include_metadata=True)
@@ -154,7 +169,7 @@ if __name__ == "__main__":
     indexer = SimpleIndexer()
     
     # image = 'src/images/furniture_1d37592b-0902-461e-b45d-daeb82e38d3e.jpg'
-    image = 'src\images\furniture_5ec90457-1501-435b-b80f-fe9b4a1a9eae.jpg'
+    image = 'src/images/furniture_5ec90457-1501-435b-b80f-fe9b4a1a9eae.jpg'
 
     # indexer.add_image(image)
     indexer.search(image)
